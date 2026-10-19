@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#121212" />
+<title>Reshuffle</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<style>
+    :root {
+        --color-green: #1ed760;
+        --color-near-black: #121212;
+        --color-dark-surface: #181818;
+        --color-mid-dark: #1f1f1f;
+        --color-white: #ffffff;
+        --color-silver: #b3b3b3;
+        --color-red: #f3727f;
+        --color-orange: #ffa42b;
+        --color-blue: #539df5;
+        --color-border-gray: #4d4d4d;
+        --color-light-border: #7c7c7c;
+        --color-dim-text: #9a9a9a;
+
+        --bg: var(--color-near-black);
+        --text: var(--color-white);
+        --muted: var(--color-silver);
+        --hint: var(--color-dim-text);
+        --surface: var(--color-mid-dark);
+        --border: var(--color-border-gray);
+        --accent: var(--color-green);
+        --on-accent: var(--color-near-black);
+        --error: var(--color-red);
+        --disabled-bg: var(--color-border-gray);
+        --disabled-text: var(--color-light-border);
+    }
+    body {
+        margin: 0;
+        min-height: 100dvh;
+        background: var(--bg);
+        color: var(--text);
+    }
+    .page-shell {
+        font-family: system-ui, sans-serif;
+        width: 100%;
+        max-width: 28rem;
+        min-height: 100dvh;
+        box-sizing: border-box;
+        margin: 0 auto;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: var(--bg);
+    }
+    body:not(.login-view) #app {
+        background: var(--color-dark-surface);
+        border-radius: 16px;
+        padding: 1.25rem;
+    }
+    header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    .logo {
+        display: block;
+        width: 3.5rem;
+        height: 3.5rem;
+        margin: 0 auto 0.75rem;
+    }
+    body.login-view header {
+        margin-bottom: 1.75rem;
+    }
+    body.login-view h1 {
+        font-size: 2.2rem;
+    }
+    body.login-view .tagline {
+        font-size: 1.2rem;
+    }
+    body.login-view button.primary {
+        width: auto;
+        min-width: 13rem;
+        margin-inline: auto;
+        padding-inline: 2rem;
+    }
+    h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .tagline {
+        color: var(--muted);
+        font-size: 1.05rem;
+        margin: 0.35rem 0 0;
+    }
+    button {
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.00625rem;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition:
+            background-color 0.1s ease,
+            box-shadow 0.1s ease;
+    }
+    button.primary {
+        display: block;
+        width: 100%;
+        padding: 0.9rem;
+        margin-top: 0.75rem;
+        background: var(--accent);
+        color: var(--on-accent);
+    }
+    button.primary:first-child {
+        margin-top: 0;
+    }
+    button.primary:hover:not(:disabled),
+    button.secondary:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--on-accent) 8%, var(--accent));
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.3),
+            0 1px 3px 1px rgba(0, 0, 0, 0.15);
+    }
+    button.primary:active:not(:disabled),
+    button.secondary:active:not(:disabled) {
+        background: color-mix(in srgb, var(--on-accent) 10%, var(--accent));
+        box-shadow: none;
+    }
+    button.primary:focus-visible:not(:disabled),
+    button.secondary:focus-visible:not(:disabled) {
+        background: color-mix(in srgb, var(--on-accent) 10%, var(--accent));
+    }
+    button.primary:disabled {
+        background: var(--disabled-bg);
+        color: var(--disabled-text);
+        cursor: default;
+    }
+    button:focus-visible,
+    select:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 2px;
+    }
+    .row {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    .row select {
+        flex: 1;
+    }
+    button.secondary {
+        padding: 0 1.25rem;
+        background: var(--accent);
+        color: var(--on-accent);
+    }
+    button.secondary:disabled {
+        background: var(--disabled-bg);
+        color: var(--disabled-text);
+        cursor: default;
+    }
+    select {
+        width: 100%;
+        padding: 0.7rem 2.25rem 0.7rem 0.8rem;
+        font-size: 1rem;
+        color: var(--text);
+        background-color: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b3b3b3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.8rem center;
+        background-size: 0.7rem;
+    }
+    select:focus {
+        border-color: var(--accent);
+    }
+    select:focus:not(:focus-visible) {
+        outline: none;
+    }
+    #status {
+        color: var(--hint);
+        font-size: 0.85rem;
+        margin-top: 0.75rem;
+        text-align: center;
+        min-height: 1.2em;
+    }
+    #status.error {
+        color: var(--error);
+    }
+    #device-row {
+        align-self: center;
+        margin-top: 1.25rem;
+        display: inline-flex;
+        align-items: center;
+    }
+    #device {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 8px;
+        color: var(--muted);
+        font-size: 0.85rem;
+    }
+    #device::before {
+        content: "";
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--accent);
+        flex: none;
+    }
+    #device:empty {
+        display: none;
+    }
+    #device.error {
+        color: var(--error);
+    }
+    #device.error::before {
+        background: var(--error);
+    }
+    body.login-view #device-row {
+        display: none;
+    }
+    #device-refresh {
+        background: none;
+        padding: 0.5rem;
+        display: inline-flex;
+        color: var(--muted);
+    }
+    #device-refresh:hover:not(:disabled) {
+        color: var(--text);
+    }
+    #device-refresh:disabled {
+        color: var(--disabled-text);
+        cursor: default;
+    }
+    #device-refresh svg {
+        width: 1rem;
+        height: 1rem;
+    }
+</style>
+</head>
+<body>
+<main class="page-shell">
+    <header>
+        <img class="logo" src="icon.svg" alt="" width="56" height="56" />
+        <h1>Reshuffle</h1>
+        <p class="tagline">A true random shuffle for Spotify</p>
+    </header>
+    <div id="app"></div>
+    <div id="device-row">
+        <div id="device"></div>
+        <button id="device-refresh" type="button" aria-label="Refresh device">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                />
+            </svg>
+        </button>
+    </div>
+    <div id="status"></div>
+</main>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
