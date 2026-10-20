@@ -1,24 +1,40 @@
 # Reshuffle
 
-Reshuffle creates a genuinely random order for Spotify's Liked Songs or a playlist, then adds up to 100 tracks to Spotify's queue. It does not change the playlist.
+Reshuffle does a true random shuffle of Spotify's Liked Songs or a playlist, then adds the songs to your queue.
 
-## How to use Reshuffle
+## Good to know
 
-1. Open Reshuffle and choose **Log in with Spotify**.
-2. Open Spotify, start playing something on the device you want to use, and return to Reshuffle. Spotify must already be playing before Reshuffle can queue tracks.
-3. Choose a library or playlist from the picker, then choose **Shuffle & Play**.
+- Due to Spotify limitations, a Premium account is required.
+- Nothing in your account is modified. Only your queue changes.
+- The songs are added after anything already playing or waiting in Spotify's queue. It does not interrupt the current song.
+- Each shuffle is a new random selection, meaning a song can appear again the next time you shuffle.
+- If a song appears more than once in a playlist, it is treated as a separate entry, so that song can show up more than once in your queue.
 
-Reshuffle adds the tracks after anything already playing or waiting in Spotify's queue. It does not interrupt the current song. Each shuffle is a new random selection, so a track can appear again the next time you shuffle.
+## Development
 
-## Requirements
+### Install and run checks
 
-- A Spotify Premium account. Spotify does not allow the queue control Reshuffle needs on free accounts.
-- An active Spotify playback session. If Reshuffle says **No device found**, open Spotify, press play, then use the refresh button in Reshuffle.
-- Access to the source you want to shuffle. Reshuffle can use Liked Songs and playlists you own or collaborate on. Spotify may show other playlists in the list, but its API does not allow Reshuffle to read their tracks.
+```bash
+npm install            # Install dependencies
+npm test               # Run tests
+npm run test:coverage  # Run tests with coverage
+npm run lint           # Lint the code
+npm run format         # Auto-format the code
+npm run format:check   # Check formatting without changing files
+```
 
-## Important notes
+### Running locally
 
-- A source with fewer than 100 playable tracks queues all of them; larger sources queue up to 100.
-- Repeated entries in a playlist are treated as separate entries, so the same song can appear more than once.
-- Spotify Autoplay may continue with recommended music after the queued tracks finish. Turn off Autoplay in Spotify if you do not want that.
-- To reach developer tools (logout, batch size override), tap the **Reshuffle** title seven times quickly.
+Reshuffle is a static site with no build step. Serve the project root with a local web server, for example:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in your browser.
+
+### Connecting to Spotify
+
+Logging in with Spotify locally requires your own Spotify app. Create one in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard), add `http://localhost:8000` as a redirect URI, and replace `CLIENT_ID` in `src/config.js` with your app's client ID.
+
+Spotify apps in development mode only allow logins from an allowlist of test users, so you can't reuse the maintainer's client ID. Add yourself as a test user on your own app instead.
