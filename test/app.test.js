@@ -1,5 +1,6 @@
 import { test, vi, afterAll, expect } from "vitest";
 import { JSDOM } from "jsdom";
+import { setBatchSize } from "../src/config.js";
 
 let handleRedirectImpl = async () => {};
 let loggedIn = false;
@@ -13,6 +14,7 @@ let batchSize = 100;
 let setBatchSizeImpl = (size) => {
     batchSize = size;
 };
+let showDevMenuCalls = [];
 
 vi.mock("../src/auth.js", () => ({
     handleRedirect: (...args) => handleRedirectImpl(...args),
@@ -35,6 +37,9 @@ vi.mock("../src/ui.js", () => ({
     },
     showError: (error) => {
         showErrorCalls.push(error);
+    },
+    showDevMenu: (options) => {
+        showDevMenuCalls.push(options);
     },
 }));
 
@@ -78,10 +83,9 @@ test("developer controls manage logout and batch-size overrides", async () => {
     expect(reloadCalls).toBe(1);
 });
 
-test("seven title taps ask for confirmation before logging out", () => {
-    let reloadCalls = 0;
-    global.location = { reload: () => (reloadCalls += 1) };
-    global.confirm = () => true;
+test("seven title taps open the developer menu with the current batch size", () => {
+    showDevMenuCalls = [];
+    batchSize = 42;
     const originalSetTimeout = global.setTimeout;
     const originalClearTimeout = global.clearTimeout;
     let timerCallback;
@@ -104,40 +108,10 @@ test("seven title taps ask for confirmation before logging out", () => {
         global.clearTimeout = originalClearTimeout;
     }
 
-    expect(reloadCalls).toBe(1);
-    expect(clearTokensCalls).toBe(2);
-    expect(timeoutDelay).toBe(1500);
-});
-
-test("seven title taps do not log out when confirmation is declined", () => {
-    loggedIn = true;
-    let reloadCalls = 0;
-    global.location = { reload: () => (reloadCalls += 1) };
-    global.confirm = () => false;
-    const originalSetTimeout = global.setTimeout;
-    const originalClearTimeout = global.clearTimeout;
-    let timerCallback;
-    let timeoutDelay;
-    global.setTimeout = (callback, delay) => {
-        timerCallback = callback;
-        timeoutDelay = delay;
-        return 0;
-    };
-    global.clearTimeout = () => {};
-
-    try {
-        timerCallback?.();
-        for (let i = 0; i < 7; i += 1) {
-            document.querySelector("header").click();
-        }
-    } finally {
-        global.setTimeout = originalSetTimeout;
-        global.clearTimeout = originalClearTimeout;
-    }
-
-    expect(reloadCalls).toBe(0);
-    expect(clearTokensCalls).toBe(2);
-    expect(loggedIn, "declining confirmation preserves the active session").toBe(true);
+    expect(showDevMenuCalls.length).toBe(1);
+    expect(showDevMenuCalls[0].batchSize).toBe(42);
+    expect(showDevMenuCalls[0].onLogout).toBe(window.devLogout);
+    expect(showDevMenuCalls[0].onBatchSizeChange).toBe(setBatchSize);
     expect(timeoutDelay).toBe(1500);
 });
 

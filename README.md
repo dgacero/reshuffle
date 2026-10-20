@@ -21,4 +21,4 @@ Reshuffle adds the tracks after anything already playing or waiting in Spotify's
 - A source with fewer than 100 playable tracks queues all of them; larger sources queue up to 100.
 - Repeated entries in a playlist are treated as separate entries, so the same song can appear more than once.
 - Spotify Autoplay may continue with recommended music after the queued tracks finish. Turn off Autoplay in Spotify if you do not want that.
-- To log out, tap the **Reshuffle** title seven times quickly and confirm.
+- To reach developer tools (logout, batch size override), tap the **Reshuffle** title seven times quickly.

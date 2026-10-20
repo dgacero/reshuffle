@@ -1,5 +1,5 @@
 import { handleRedirect, isLoggedIn, clearTokens } from "./auth.js";
-import { renderLogin, renderApp, setStatus, showError } from "./ui.js";
+import { renderLogin, renderApp, setStatus, showError, showDevMenu } from "./ui.js";
 import { getBatchSize, setBatchSize } from "./config.js";
 
 function handleStartupError(error) {
@@ -28,9 +28,9 @@ window.devBatchSize = (n) => {
     return getBatchSize();
 };
 
-// On a phone there is no `console`, so the same logout is reachable by a hidden
-// gesture: tap the title 7 times quickly (as with Android's build-number
-// trick), then confirm.
+// On a phone there is no `console`, so the same dev tools are reachable by a
+// hidden gesture: tap the title 7 times quickly (as with Android's build-number
+// trick), opening a menu with logout and batch-size controls.
 let titleTaps = 0;
 let titleTapTimer = null;
 document.querySelector("header").addEventListener("click", () => {
@@ -39,9 +39,11 @@ document.querySelector("header").addEventListener("click", () => {
     titleTapTimer = setTimeout(() => (titleTaps = 0), 1500);
     if (titleTaps >= 7) {
         titleTaps = 0;
-        if (confirm("Log out of Reshuffle?")) {
-            window.devLogout();
-        }
+        showDevMenu({
+            batchSize: getBatchSize(),
+            onBatchSizeChange: setBatchSize,
+            onLogout: window.devLogout,
+        });
     }
 });
 

@@ -25,7 +25,7 @@ vi.mock("../src/player.js", () => ({
     play: (...args) => playImpl(...args),
 }));
 
-const { renderLogin, renderApp } = await import("../src/ui.js");
+const { renderLogin, renderApp, showDevMenu } = await import("../src/ui.js");
 
 function createDom() {
     const dom = new JSDOM(`
@@ -35,10 +35,22 @@ function createDom() {
             <div id="device"></div>
             <button id="device-refresh" type="button" aria-label="Refresh device"></button>
             <div id="status"></div>
+            <div id="dev-menu" hidden>
+                <form id="dev-batch-size-form">
+                    <label for="dev-batch-size">Batch size</label>
+                    <input id="dev-batch-size" type="number" />
+                    <p id="dev-batch-size-hint"></p>
+                    <button id="dev-logout" type="button">Log out</button>
+                    <button id="dev-menu-cancel" type="button">Cancel</button>
+                    <button type="submit">Save Changes</button>
+                </form>
+                <button id="dev-menu-close" type="button" aria-label="Close">&times;</button>
+            </div>
         </body>
     `);
     global.window = dom.window;
     global.document = dom.window.document;
+    global.confirm = () => false;
     return dom;
 }
 
@@ -47,6 +59,7 @@ function cleanupDom(t, dom) {
         dom.window.close();
         delete global.window;
         delete global.document;
+        delete global.confirm;
     });
 }
 
@@ -350,4 +363,76 @@ test("renderApp shows play failures and recovers the device controls", async (t)
     expect(document.querySelector("#status").textContent).toBe("queue failed");
     expect(document.querySelector("#status").classList.contains("error")).toBe(true);
     expect(getByRole(document, "button", { name: "Play Liked Songs" }).disabled).toBe(false);
+});
+
+test("showDevMenu populates the batch size and reveals the menu", async (t) => {
+    setupTest(t);
+
+    showDevMenu({ batchSize: 42, onBatchSizeChange: () => {}, onLogout: () => {} });
+
+    expect(document.getElementById("dev-menu").hidden).toBe(false);
+    expect(getByRole(document, "spinbutton", { name: "Batch size" }).value).toBe("42");
+});
+
+test("showDevMenu saves a valid batch size and closes the menu", async (t) => {
+    setupTest(t);
+    let savedSize;
+    showDevMenu({ batchSize: 42, onBatchSizeChange: (size) => (savedSize = size), onLogout: () => {} });
+    const input = getByRole(document, "spinbutton", { name: "Batch size" });
+    const save = getByRole(document, "button", { name: "Save Changes" });
+
+    input.value = "75";
+    fireEvent.click(save);
+    expect(savedSize).toBe(75);
+    expect(document.getElementById("dev-menu").hidden).toBe(true);
+});
+
+test("showDevMenu rejects an invalid batch size and keeps the menu open", async (t) => {
+    setupTest(t);
+    let savedSize;
+    showDevMenu({ batchSize: 42, onBatchSizeChange: (size) => (savedSize = size), onLogout: () => {} });
+    const input = getByRole(document, "spinbutton", { name: "Batch size" });
+
+    input.value = "0";
+    fireEvent.click(getByRole(document, "button", { name: "Save Changes" }));
+
+    expect(savedSize).toBeUndefined();
+    expect(input.value).toBe("42");
+    expect(document.getElementById("dev-menu").hidden).toBe(false);
+});
+
+test("showDevMenu logs out only after confirmation", async (t) => {
+    setupTest(t);
+    let logoutCalls = 0;
+    showDevMenu({ batchSize: 42, onBatchSizeChange: () => {}, onLogout: () => (logoutCalls += 1) });
+
+    global.confirm = () => false;
+    fireEvent.click(getByRole(document, "button", { name: "Log out" }));
+    expect(logoutCalls).toBe(0);
+
+    global.confirm = () => true;
+    fireEvent.click(getByRole(document, "button", { name: "Log out" }));
+    expect(logoutCalls).toBe(1);
+});
+
+test("showDevMenu close button hides the menu", async (t) => {
+    setupTest(t);
+    showDevMenu({ batchSize: 42, onBatchSizeChange: () => {}, onLogout: () => {} });
+
+    fireEvent.click(getByRole(document, "button", { name: "Close" }));
+
+    expect(document.getElementById("dev-menu").hidden).toBe(true);
+});
+
+test("showDevMenu cancel button hides the menu without saving", async (t) => {
+    setupTest(t);
+    let savedSize;
+    showDevMenu({ batchSize: 42, onBatchSizeChange: (size) => (savedSize = size), onLogout: () => {} });
+    const input = getByRole(document, "spinbutton", { name: "Batch size" });
+
+    input.value = "75";
+    fireEvent.click(getByRole(document, "button", { name: "Cancel" }));
+
+    expect(savedSize).toBeUndefined();
+    expect(document.getElementById("dev-menu").hidden).toBe(true);
 });

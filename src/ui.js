@@ -1,6 +1,7 @@
 import { startLogin, isLoggedIn } from "./auth.js";
 import { fetchPlaylists, getPlaybackState } from "./spotify.js";
 import { play } from "./player.js";
+import { DEFAULT_BATCH_SIZE } from "./config.js";
 
 let statusTimer = null;
 let actionInProgress = false;
@@ -201,4 +202,39 @@ export async function renderApp() {
         refreshDevice().finally(() => (refreshBtn.disabled = false));
     };
     document.addEventListener("visibilitychange", onVisible);
+}
+
+/**
+ * Shows the developer menu: a batch-size override and a logout action.
+ * Reachable only via the hidden title-tap gesture in `app.js`.
+ * @param {{batchSize: number, onBatchSizeChange: function(number): void,
+ *     onLogout: function(): void}} options
+ */
+export function showDevMenu({ batchSize, onBatchSizeChange, onLogout }) {
+    const menu = document.getElementById("dev-menu");
+    const form = document.getElementById("dev-batch-size-form");
+    const input = document.getElementById("dev-batch-size");
+    const close = () => {
+        menu.hidden = true;
+    };
+    input.value = batchSize;
+    document.getElementById("dev-batch-size-hint").textContent = `Default is ${DEFAULT_BATCH_SIZE} tracks per batch.`;
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        const value = Number(input.value);
+        if (Number.isInteger(value) && value > 0) {
+            onBatchSizeChange(value);
+            close();
+        } else {
+            input.value = batchSize;
+        }
+    };
+    document.getElementById("dev-logout").onclick = () => {
+        if (confirm("Log out of Reshuffle?")) {
+            onLogout();
+        }
+    };
+    document.getElementById("dev-menu-cancel").onclick = close;
+    document.getElementById("dev-menu-close").onclick = close;
+    menu.hidden = false;
 }
