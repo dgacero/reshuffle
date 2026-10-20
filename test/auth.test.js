@@ -140,7 +140,7 @@ test("handleRedirect exchanges a valid code, stores token expiry, and scrubs cal
 
     expect(global.localStorage.getItem("access_token")).toBe("new-token");
     expect(global.localStorage.getItem("expires_at")).toBe(String(now + 3600_000));
-    expect(global.sessionStorage.getItem("refresh_token")).toBe("refresh");
+    expect(global.localStorage.getItem("refresh_token")).toBe("refresh");
     expect(new URL(replacedUrl).search).toBe("?keep=yes");
     expect(new URL(replacedUrl).hash).toBe("#section");
     expect(global.sessionStorage.getItem("code_verifier"), "single use only").toBeNull();
@@ -150,8 +150,8 @@ test("handleRedirect keeps the existing refresh token when code exchange omits o
     stubRedirect(t, "https://app.example/?code=xyz&state=abc", [
         ["auth_state", "abc"],
         ["code_verifier", "verifier"],
-        ["refresh_token", "existing-refresh"],
     ]);
+    global.localStorage.setItem("refresh_token", "existing-refresh");
     global.fetch = async () => ({
         ok: true,
         json: async () => ({ access_token: "new-token", expires_in: 3600 }),
@@ -160,15 +160,16 @@ test("handleRedirect keeps the existing refresh token when code exchange omits o
     await handleRedirect();
 
     expect(global.localStorage.getItem("access_token")).toBe("new-token");
-    expect(global.sessionStorage.getItem("refresh_token")).toBe("existing-refresh");
+    expect(global.localStorage.getItem("refresh_token")).toBe("existing-refresh");
 });
 
 test("getValidToken shares one in-flight refresh across concurrent callers", async (t) => {
     global.localStorage = fakeStorage([
         ["access_token", "stale-access-token"],
         ["expires_at", "0"],
+        ["refresh_token", "old-refresh-token"],
     ]);
-    global.sessionStorage = fakeStorage([["refresh_token", "old-refresh-token"]]);
+    global.sessionStorage = fakeStorage();
 
     let fetchCalls = 0;
     let request;
@@ -202,12 +203,15 @@ test("getValidToken shares one in-flight refresh across concurrent callers", asy
     expect(body.get("client_id")).toBe("7f6ceeedc16d41288c419aba5ada390e");
     expect(body.get("grant_type")).toBe("refresh_token");
     expect(body.get("refresh_token")).toBe("old-refresh-token");
-    expect(global.sessionStorage.getItem("refresh_token")).toBe("rotated-refresh-token-1");
+    expect(global.localStorage.getItem("refresh_token")).toBe("rotated-refresh-token-1");
 });
 
 test("a refresh network failure preserves the session for retry", async (t) => {
-    global.localStorage = fakeStorage([["expires_at", "0"]]);
-    global.sessionStorage = fakeStorage([["refresh_token", "still-valid"]]);
+    global.localStorage = fakeStorage([
+        ["expires_at", "0"],
+        ["refresh_token", "still-valid"],
+    ]);
+    global.sessionStorage = fakeStorage();
     global.fetch = async () => {
         throw new Error("offline");
     };
@@ -218,12 +222,15 @@ test("a refresh network failure preserves the session for retry", async (t) => {
     });
 
     await expect(() => getValidToken()).rejects.toThrow(/Could not reach Spotify/);
-    expect(global.sessionStorage.getItem("refresh_token")).toBe("still-valid");
+    expect(global.localStorage.getItem("refresh_token")).toBe("still-valid");
 });
 
 test("a failed refresh clears the session", async (t) => {
-    global.localStorage = fakeStorage([["expires_at", "0"]]);
-    global.sessionStorage = fakeStorage([["refresh_token", "revoked"]]);
+    global.localStorage = fakeStorage([
+        ["expires_at", "0"],
+        ["refresh_token", "revoked"],
+    ]);
+    global.sessionStorage = fakeStorage();
     global.fetch = async () => ({ ok: false, status: 400 });
     t.onTestFinished(() => {
         delete global.localStorage;
@@ -232,12 +239,15 @@ test("a failed refresh clears the session", async (t) => {
     });
 
     await expect(() => getValidToken()).rejects.toThrow(/Session expired/);
-    expect(global.sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(global.localStorage.getItem("refresh_token")).toBeNull();
 });
 
 test("a refresh that returns a malformed token body clears the session", async (t) => {
-    global.localStorage = fakeStorage([["expires_at", "0"]]);
-    global.sessionStorage = fakeStorage([["refresh_token", "stale"]]);
+    global.localStorage = fakeStorage([
+        ["expires_at", "0"],
+        ["refresh_token", "stale"],
+    ]);
+    global.sessionStorage = fakeStorage();
     global.fetch = async () => ({
         ok: true,
         json: async () => ({ expires_in: 3600 }),
@@ -249,7 +259,7 @@ test("a refresh that returns a malformed token body clears the session", async (
     });
 
     await expect(() => getValidToken()).rejects.toThrow(/Session expired/);
-    expect(global.sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(global.localStorage.getItem("refresh_token")).toBeNull();
 });
 
 test("getValidToken explains when an expired token has no refresh token", async (t) => {
@@ -270,8 +280,9 @@ test("clearAccessToken preserves refresh credentials and clearTokens removes the
     global.localStorage = fakeStorage([
         ["access_token", "access"],
         ["expires_at", "123"],
+        ["refresh_token", "refresh"],
     ]);
-    global.sessionStorage = fakeStorage([["refresh_token", "refresh"]]);
+    global.sessionStorage = fakeStorage();
     t.onTestFinished(() => {
         delete global.localStorage;
         delete global.sessionStorage;
@@ -280,18 +291,19 @@ test("clearAccessToken preserves refresh credentials and clearTokens removes the
     clearAccessToken();
     expect(global.localStorage.getItem("access_token")).toBeNull();
     expect(global.localStorage.getItem("expires_at")).toBeNull();
-    expect(global.sessionStorage.getItem("refresh_token")).toBe("refresh");
+    expect(global.localStorage.getItem("refresh_token")).toBe("refresh");
 
     clearTokens();
-    expect(global.sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(global.localStorage.getItem("refresh_token")).toBeNull();
 });
 
 test("getValidToken returns the stored token without refreshing when still fresh", async (t) => {
     global.localStorage = fakeStorage([
         ["access_token", "still-fresh"],
         ["expires_at", String(Date.now() + 60_000)],
+        ["refresh_token", "refresh"],
     ]);
-    global.sessionStorage = fakeStorage([["refresh_token", "refresh"]]);
+    global.sessionStorage = fakeStorage();
     let fetchCalls = 0;
     global.fetch = async () => {
         fetchCalls += 1;
@@ -311,8 +323,9 @@ test("getValidToken refreshes a token inside the refresh skew window", async (t)
     global.localStorage = fakeStorage([
         ["access_token", "almost-expired"],
         ["expires_at", String(Date.now() + 29_999)],
+        ["refresh_token", "refresh"],
     ]);
-    global.sessionStorage = fakeStorage([["refresh_token", "refresh"]]);
+    global.sessionStorage = fakeStorage();
     let fetchCalls = 0;
     global.fetch = async () => {
         fetchCalls += 1;
@@ -332,10 +345,10 @@ test("getValidToken refreshes a token inside the refresh skew window", async (t)
 });
 
 test("isLoggedIn reflects whether a refresh token is stored", (t) => {
-    global.sessionStorage = fakeStorage();
-    t.onTestFinished(() => delete global.sessionStorage);
+    global.localStorage = fakeStorage();
+    t.onTestFinished(() => delete global.localStorage);
 
     expect(isLoggedIn()).toBe(false);
-    global.sessionStorage.setItem("refresh_token", "refresh");
+    global.localStorage.setItem("refresh_token", "refresh");
     expect(isLoggedIn()).toBe(true);
 });
