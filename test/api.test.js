@@ -11,8 +11,9 @@ function stubApi(t, apiResponses) {
     global.localStorage = fakeStorage([
         ["access_token", "token"],
         ["expires_at", String(Date.now() + 60_000)],
+        ["refresh_token", "refresh"],
     ]);
-    global.sessionStorage = fakeStorage([["refresh_token", "refresh"]]);
+    global.sessionStorage = fakeStorage();
     global.fetch = async (url, opts = {}) => {
         calls.push({ url, opts });
         if (url === TOKEN_URL) {
@@ -86,7 +87,7 @@ test("api refreshes and retries once when the first attempt is a 401", async (t)
         "https://api.spotify.com/v1/me/playlists",
     ]);
     expect(calls[2].opts.headers.Authorization).toBe("Bearer refreshed");
-    expect(global.sessionStorage.getItem("refresh_token"), "keeps the session").toBe("refresh");
+    expect(global.localStorage.getItem("refresh_token"), "keeps the session").toBe("refresh");
 });
 
 test("api clears every token when the retry is also a 401", async (t) => {
@@ -99,6 +100,6 @@ test("api clears every token when the retry is also a 401", async (t) => {
         message: expect.stringMatching(/Session expired/),
         status: 401,
     });
-    expect(global.sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(global.localStorage.getItem("refresh_token")).toBeNull();
     expect(global.localStorage.getItem("access_token")).toBeNull();
 });

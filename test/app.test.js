@@ -53,6 +53,10 @@ const dom = new JSDOM(
     <!doctype html>
     <body>
         <header></header>
+        <button id="info-btn"></button>
+        <div id="info-menu" hidden>
+            <button id="info-menu-close"></button>
+        </div>
     </body>
 `,
     { url: "https://app.example/" },

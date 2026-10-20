@@ -4,11 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#121212" />
+<meta name="color-scheme" content="dark" />
 <title>Reshuffle</title>
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <style>
     :root {
+        color-scheme: dark;
         --color-green: #1ed760;
         --color-near-black: #121212;
         --color-dark-surface: #181818;
@@ -246,7 +248,7 @@
     }
     .dev-menu-content {
         width: 100%;
-        max-width: 20rem;
+        max-width: 24rem;
         box-sizing: border-box;
         background: var(--color-dark-surface);
         border-radius: 28px;
@@ -354,6 +356,45 @@
         background: var(--surface);
         color: var(--text);
     }
+    .info-btn {
+        position: fixed;
+        top: 0.9rem;
+        right: 0.9rem;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+    .info-btn:hover {
+        background: var(--surface);
+        color: var(--text);
+    }
+    .info-menu-body {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+    }
+    .info-menu-notes {
+        color: var(--hint);
+        font-size: 0.8rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+        padding-left: 1.1rem;
+    }
+    .info-menu-notes li {
+        margin-bottom: 0.35rem;
+    }
+    .info-menu-notes li:last-child {
+        margin-bottom: 0;
+    }
 </style>
 </head>
 <body>
@@ -376,6 +417,21 @@
     </div>
     <div id="status"></div>
 </main>
+<button id="info-btn" class="info-btn" type="button" aria-label="About Reshuffle">?</button>
+<div id="info-menu" class="dev-menu" hidden>
+    <div class="dev-menu-content">
+        <button id="info-menu-close" class="dev-menu-close" type="button" aria-label="Close">&times;</button>
+        <h2>About Reshuffle</h2>
+        <p class="info-menu-body">Reshuffle does a true random shuffle of your Spotify Liked Songs or a playlist, then adds the songs to your queue.</p>
+        <ul class="info-menu-notes">
+            <li>Due to Spotify limitations, a Premium account is required.</li>
+            <li>Nothing in your account is modified. Only your queue changes.</li>
+        </ul>
+        <div class="dev-menu-footer">
+            <a href="https://github.com/dgacero/reshuffle" target="_blank" rel="noopener" class="dev-menu-cancel">View on GitHub</a>
+        </div>
+    </div>
+</div>
 <div id="dev-menu" class="dev-menu" hidden>
     <div class="dev-menu-content">
         <button id="dev-menu-close" class="dev-menu-close" type="button" aria-label="Close">&times;</button>

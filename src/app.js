@@ -28,6 +28,13 @@ window.devBatchSize = (n) => {
     return getBatchSize();
 };
 
+document.getElementById("info-btn").addEventListener("click", () => {
+    document.getElementById("info-menu").hidden = false;
+});
+document.getElementById("info-menu-close").addEventListener("click", () => {
+    document.getElementById("info-menu").hidden = true;
+});
+
 // On a phone there is no `console`, so the same dev tools are reachable by a
 // hidden gesture: tap the title 7 times quickly (as with Android's build-number
 // trick), opening a menu with logout and batch-size controls.

@@ -169,7 +169,7 @@ function storeToken(data) {
     // Refresh tokens rotate: Spotify may omit a new one on some responses, so
     // keep the old one.
     if (data.refresh_token) {
-        sessionStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
     }
 }
 
@@ -182,7 +182,7 @@ export function clearAccessToken() {
 /** Clears every stored token, ending the session. */
 export function clearTokens() {
     clearAccessToken();
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 let refreshPromise = null;
@@ -197,7 +197,7 @@ async function refreshToken() {
         return refreshPromise;
     }
     refreshPromise = (async () => {
-        const refreshTokenValue = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+        const refreshTokenValue = localStorage.getItem(REFRESH_TOKEN_KEY);
         if (!refreshTokenValue) {
             throw new Error("Not logged in.");
         }
@@ -246,5 +246,5 @@ export async function getValidToken() {
  * @return {boolean}
  */
 export function isLoggedIn() {
-    return Boolean(sessionStorage.getItem(REFRESH_TOKEN_KEY));
+    return Boolean(localStorage.getItem(REFRESH_TOKEN_KEY));
 }
