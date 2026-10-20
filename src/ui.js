@@ -31,7 +31,7 @@ function flashStatus(text) {
 
 function setDeviceActionsDisabled(disabled) {
     for (const button of document.querySelectorAll(".needs-device")) {
-        button.disabled = disabled || button.dataset.baseDisabled === "true";
+        button.disabled = disabled;
     }
 }
 
@@ -132,8 +132,9 @@ function optionEl(value, text) {
 }
 
 /**
- * Renders the logged-in view: a `Liked Songs` button and a playlist picker,
- * then wires up the manual device refresh.
+ * Renders the logged-in view: a library/playlist picker (defaulting to
+ * `Liked Songs`) and a `Shuffle & Play` button, then connects the manual
+ * refresh controls.
  * @return {!Promise<void>}
  * @throws {Error} If the playlist request fails.
  */
@@ -143,34 +144,33 @@ export async function renderApp() {
     const playlists = await fetchPlaylists();
     setStatus("");
 
-    // Liked Songs action.
-    const likedBtn = document.createElement("button");
-    likedBtn.className = "primary needs-device";
-    likedBtn.disabled = true;
-    likedBtn.textContent = "Play Liked Songs";
-
-    // Chosen playlist action.
-    const playlistSelect = document.createElement("select");
-    playlistSelect.setAttribute("aria-label", "Playlist");
-    if (playlists.length === 0) {
-        playlistSelect.appendChild(optionEl("", "No playlists found"));
-        playlistSelect.disabled = true;
-    } else {
-        for (const p of playlists) {
-            playlistSelect.appendChild(optionEl(p.id, p.name));
-        }
+    const select = document.createElement("select");
+    select.id = "source-select";
+    select.appendChild(optionEl("liked", "Liked Songs"));
+    for (const p of playlists) {
+        select.appendChild(optionEl(p.id, p.name));
     }
-    const playBtn = document.createElement("button");
-    playBtn.className = "secondary needs-device";
-    playBtn.textContent = "Play";
-    playBtn.disabled = true;
-    playBtn.dataset.baseDisabled = String(playlists.length === 0);
-    const runPlay = async (source) => {
+
+    const label = document.createElement("label");
+    label.className = "picker-label";
+    label.htmlFor = "source-select";
+    label.textContent = "Choose library or playlist";
+
+    const pickerCard = document.createElement("div");
+    pickerCard.className = "picker-card";
+    pickerCard.append(select);
+
+    const shuffleBtn = document.createElement("button");
+    shuffleBtn.className = "primary shuffle-btn needs-device";
+    shuffleBtn.disabled = true;
+    shuffleBtn.textContent = "Shuffle & Play";
+    shuffleBtn.onclick = async () => {
         if (actionInProgress) {
             return;
         }
         actionInProgress = true;
         setDeviceActionsDisabled(true);
+        const source = select.value === "liked" ? { type: "liked" } : { type: "playlist", id: select.value };
         try {
             const count = await play(source, setStatus);
             if (count) {
@@ -183,18 +183,13 @@ export async function renderApp() {
             await refreshDevice();
         }
     };
-    likedBtn.onclick = () => runPlay({ type: "liked" });
-    playBtn.onclick = () => runPlay({ type: "playlist", id: playlistSelect.value });
-    const playlistRow = document.createElement("div");
-    playlistRow.className = "row";
-    playlistRow.append(playlistSelect, playBtn);
 
     const appEl = document.getElementById("app");
     appEl.innerHTML = "";
-    appEl.append(likedBtn, playlistRow);
+    appEl.append(label, pickerCard, shuffleBtn);
 
     // Auto-detect the device once on load; after that the user refreshes via
-    // the button (or by re-focusing the tab) instead of us polling forever.
+    // the button (or by re-focusing the tab).
     refreshDevice();
     const refreshBtn = document.getElementById("device-refresh");
     refreshBtn.onclick = () => {

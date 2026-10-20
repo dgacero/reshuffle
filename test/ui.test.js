@@ -1,5 +1,5 @@
 import { test, vi, expect } from "vitest";
-import { fireEvent, getAllByRole, getByRole } from "@testing-library/dom";
+import { fireEvent, getByRole } from "@testing-library/dom";
 import { JSDOM } from "jsdom";
 
 let loggedIn = true;
@@ -169,7 +169,7 @@ test("renderApp propagates a library-loading failure without rendering controls"
     expect(document.querySelector("#app").childElementCount).toBe(0);
 });
 
-test("renderApp renders playlists and enables actions for an active device", async (t) => {
+test("renderApp renders playlists and enables the shuffle button for an active device", async (t) => {
     setupTest(t);
     fetchPlaylistsImpl = async () => [TEST_PLAYLIST];
     getPlaybackStateImpl = async () => ({ is_playing: true, device: TEST_DEVICE });
@@ -181,16 +181,16 @@ test("renderApp renders playlists and enables actions for an active device", asy
     await renderApp();
     await flush();
 
-    const select = getByRole(document, "combobox", { name: "Playlist" });
-    const buttons = getAllByRole(document, "button", { name: /^Play/ });
-    expect(select.options[0].textContent).toBe("Road Trip");
-    expect(buttons.length).toBe(2);
-    expect([...buttons].every((button) => !button.disabled)).toBe(true);
+    const select = getByRole(document, "combobox", { name: "Choose library or playlist" });
+    const button = getByRole(document, "button", { name: "Shuffle & Play" });
+    expect(select.options[0].textContent).toBe("Liked Songs");
+    expect(select.options[1].textContent).toBe("Road Trip");
+    expect(button.disabled).toBe(false);
     expect(document.querySelector("#device").textContent).toBe("Playing on Phone");
 
-    fireEvent.click(getByRole(document, "button", { name: "Play" }));
+    fireEvent.click(button);
     await flush();
-    expect(selectedSource).toEqual({ type: "playlist", id: "playlist-1" });
+    expect(selectedSource).toEqual({ type: "liked" });
 });
 
 test("renderApp plays the playlist currently selected by the user", async (t) => {
@@ -204,15 +204,16 @@ test("renderApp plays the playlist currently selected by the user", async (t) =>
 
     await renderApp();
     await flush();
-    const select = getByRole(document, "combobox", { name: "Playlist" });
+    const select = getByRole(document, "combobox", { name: "Choose library or playlist" });
+    expect([...select.options].map((o) => o.textContent)).toEqual(["Liked Songs", "Road Trip", "Focus"]);
     select.value = "playlist-2";
-    fireEvent.click(getByRole(document, "button", { name: "Play" }));
+    fireEvent.click(getByRole(document, "button", { name: "Shuffle & Play" }));
     await flush();
 
     expect(selectedSource).toEqual({ type: "playlist", id: "playlist-2" });
 });
 
-test("renderApp disables actions and reports a device refresh failure", async (t) => {
+test("renderApp disables the shuffle button and reports a device refresh failure", async (t) => {
     setupTest(t);
     fetchPlaylistsImpl = async () => [TEST_PLAYLIST];
     getPlaybackStateImpl = async () => {
@@ -225,7 +226,7 @@ test("renderApp disables actions and reports a device refresh failure", async (t
     expect(document.querySelector("#device").textContent).toBe("Could not check playback status.");
     expect(document.querySelector("#status").textContent).toBe("offline");
     expect(document.querySelector("#device").classList.contains("error")).toBe(true);
-    expect(getAllByRole(document, "button", { name: /^Play/ }).every((button) => button.disabled)).toBe(true);
+    expect(getByRole(document, "button", { name: "Shuffle & Play" }).disabled).toBe(true);
 });
 
 test("renderApp handles an empty library and a missing active device", async (t) => {
@@ -236,15 +237,16 @@ test("renderApp handles an empty library and a missing active device", async (t)
     await renderApp();
     await flush();
 
-    const select = getByRole(document, "combobox", { name: "Playlist" });
-    expect(select.disabled).toBe(true);
-    expect(select.options[0].textContent).toBe("No playlists found");
+    const select = getByRole(document, "combobox", { name: "Choose library or playlist" });
+    expect(select.disabled).toBe(false);
+    expect(select.options.length).toBe(1);
+    expect(select.options[0].textContent).toBe("Liked Songs");
     expect(document.querySelector("#device").textContent).toBe("No device found. Open Spotify and press play.");
     expect(document.querySelector("#device").classList.contains("error")).toBe(true);
-    expect(getAllByRole(document, "button", { name: /^Play/ }).every((button) => button.disabled)).toBe(true);
+    expect(getByRole(document, "button", { name: "Shuffle & Play" }).disabled).toBe(true);
 });
 
-test("renderApp keeps Liked Songs available when the library has no playlists", async (t) => {
+test("renderApp enables the shuffle button when the library has no playlists but a device is active", async (t) => {
     setupTest(t);
     fetchPlaylistsImpl = async () => [];
     getPlaybackStateImpl = async () => ({ is_playing: true, device: TEST_DEVICE });
@@ -252,10 +254,29 @@ test("renderApp keeps Liked Songs available when the library has no playlists", 
     await renderApp();
     await flush();
 
-    const select = getByRole(document, "combobox", { name: "Playlist" });
-    expect(select.disabled).toBe(true);
-    expect(getByRole(document, "button", { name: "Play Liked Songs" }).disabled).toBe(false);
-    expect(getByRole(document, "button", { name: "Play" }).disabled).toBe(true);
+    const select = getByRole(document, "combobox", { name: "Choose library or playlist" });
+    expect(select.options.length).toBe(1);
+    expect(getByRole(document, "button", { name: "Shuffle & Play" }).disabled).toBe(false);
+});
+
+test("renderApp switches back to Liked Songs after selecting a playlist", async (t) => {
+    setupTest(t);
+    fetchPlaylistsImpl = async () => [TEST_PLAYLIST];
+    getPlaybackStateImpl = async () => ({ is_playing: true, device: TEST_DEVICE });
+    let selectedSource;
+    playImpl = async (source) => {
+        selectedSource = source;
+    };
+
+    await renderApp();
+    await flush();
+    const select = getByRole(document, "combobox", { name: "Choose library or playlist" });
+    select.value = "playlist-1";
+    select.value = "liked";
+    fireEvent.click(getByRole(document, "button", { name: "Shuffle & Play" }));
+    await flush();
+
+    expect(selectedSource).toEqual({ type: "liked" });
 });
 
 test("refresh button and visible-tab events re-check the playback device", async (t) => {
@@ -303,7 +324,7 @@ test("renderApp ignores a second play click while the first action is running", 
 
     await renderApp();
     await flush();
-    const button = getByRole(document, "button", { name: "Play Liked Songs" });
+    const button = getByRole(document, "button", { name: "Shuffle & Play" });
     fireEvent.click(button);
     fireEvent.click(button);
     expect(playCalls).toBe(1);
@@ -333,7 +354,7 @@ test("renderApp flashes the queued message, then clears it", async (t) => {
     try {
         await renderApp();
         await flush();
-        fireEvent.click(getByRole(document, "button", { name: "Play Liked Songs" }));
+        fireEvent.click(getByRole(document, "button", { name: "Shuffle & Play" }));
         await flush();
         await flush();
 
@@ -356,13 +377,13 @@ test("renderApp shows play failures and recovers the device controls", async (t)
 
     await renderApp();
     await flush();
-    fireEvent.click(getByRole(document, "button", { name: "Play Liked Songs" }));
+    fireEvent.click(getByRole(document, "button", { name: "Shuffle & Play" }));
     await flush();
     await flush();
 
     expect(document.querySelector("#status").textContent).toBe("queue failed");
     expect(document.querySelector("#status").classList.contains("error")).toBe(true);
-    expect(getByRole(document, "button", { name: "Play Liked Songs" }).disabled).toBe(false);
+    expect(getByRole(document, "button", { name: "Shuffle & Play" }).disabled).toBe(false);
 });
 
 test("showDevMenu populates the batch size and reveals the menu", async (t) => {

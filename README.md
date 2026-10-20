@@ -6,7 +6,7 @@ Reshuffle creates a genuinely random order for Spotify's Liked Songs or a playli
 
 1. Open Reshuffle and choose **Log in with Spotify**.
 2. Open Spotify, start playing something on the device you want to use, and return to Reshuffle. Spotify must already be playing before Reshuffle can queue tracks.
-3. Choose **Play Liked Songs**, or select a playlist and choose **Play**.
+3. Choose a library or playlist from the picker, then choose **Shuffle & Play**.
 
 Reshuffle adds the tracks after anything already playing or waiting in Spotify's queue. It does not interrupt the current song. Each shuffle is a new random selection, so a track can appear again the next time you shuffle.
 
